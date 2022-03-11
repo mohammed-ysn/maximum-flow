@@ -132,43 +132,68 @@ def compute_max_flow(capacity, s, t):
                     # give h an edge v -> u with weight -1 meaning "dec"
                     h.add_edge(v_id, u_id, -1)
 
-        return h.bfs_shortest_path(s, t)
+        return h, h.bfs_shortest_path(s, t)
 
     while True:
-        p = find_augmenting_path()
+        # h: residual graph
+        # p: shortest path from s to t
+        h, p = find_augmenting_path()
         if p is None:
             break
         else:
             δ = inf
+            
             for v, v_next in zip(p, p[1:]):
                 v_id = v.get_id()
                 v_next_id = v_next.get_id()
                 if v.get_weight(v_next) == 1:
+                    # edge labelled "inc"
                     δ = min(δ, g.get_weight_from_ids(v_id, v_next_id) -
                             f.get_weight_from_ids(v_id, v_next_id))
                 else:
+                    # edge labelled "dec"
                     δ = min(δ, f.get_weight_from_ids(v_next_id, v_id))
-            assert δ > 0
+            
             for v, v_next in zip(p, p[1:]):
                 v_id = v.get_id()
                 v_next_id = v_next.get_id()
                 if v.get_weight(v_next) == 1:
+                    # edge labelled "inc"
                     f.add_edge(v_id, v_next_id, f.get_weight_from_ids(
                         v_id, v_next_id) + δ)
                 else:
+                    # edge labelled "dec"
                     f.add_edge(v_next_id, v_id, f.get_weight_from_ids(
                         v_next_id, v_id) - δ)
-        
+
+    # compute flow_value
+    s_in_f = f.get_vertex(s)
+    # sum outgoing edges
+    s_flow_out = sum([s_in_f.get_weight(v) for v in s_in_f.get_connections()])
+    # sum incoming edges
+    s_flow_in = sum([v.get_weight(s_in_f)
+                    for v in f if s_in_f in v.get_connections()])
+    flow_value = s_flow_out - s_flow_in
+
+    # compute cutset by running bfs from s to all nodes
+    # after augmenting path not found
+    cutset = {s}
+    for v in h.get_vertices():
+        if h.bfs_shortest_path(s, v):
+            cutset.add(v)
+
+    # convert flow graph to dictionary
     flow_dict = {}
     for u in f:
         for v in u.get_connections():
             flow_dict[(u.get_id(), v.get_id())] = u.get_weight(v)
-    
-    print(flow_dict)
 
+    # voila
+    return flow_value, flow_dict, cutset
 
+# test graph
 with open('flownetwork_00.csv') as f:
     rows = [row for row in csv.reader(f)][1:]
 capacity = {(u, v): int(c) for u, v, c in rows}
 
-compute_max_flow(capacity, '0', '3')
+print(compute_max_flow(capacity, '0', '2'))
