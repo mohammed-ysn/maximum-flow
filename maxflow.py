@@ -66,7 +66,7 @@ class Graph:
     def get_weight_from_ids(self, frm, to):
         return self.get_vertex(frm).get_weight(self.get_vertex(to))
 
-    def bfs_path(self, s, t):
+    def bfs_shortest_path(self, s, t):
         s = self.get_vertex(s)
         t = self.get_vertex(t)
         for v in self:
@@ -77,15 +77,21 @@ class Graph:
 
         while toexplore:
             v = toexplore.pop(0)
-            for w in v.get_connections():
-                if not w.seen:
-                    toexplore.append(w)
-                    w.seen = True
-                    w.come_from = v
+            if v == t:
+                # found shortest path to t
+                break
+            else:
+                for w in v.get_connections():
+                    if not w.seen:
+                        toexplore.append(w)
+                        w.seen = True
+                        w.come_from = v
 
         if t.come_from is None:
+            # there exists no path from s to t
             return None
         else:
+            # construct path working backwards, from t to s
             path = [t]
             while path[0].come_from != s:
                 path.insert(0, path[0].come_from)
@@ -96,6 +102,7 @@ class Graph:
 def compute_max_flow(capacity, s, t):
     # capacity graph
     g = Graph(directed=True)
+    # flow graph
     f = Graph(directed=True)
 
     # add all edges in capacity to capacity graph and flow graph
@@ -125,7 +132,7 @@ def compute_max_flow(capacity, s, t):
                     # give h an edge v -> u with weight -1 meaning "dec"
                     h.add_edge(v_id, u_id, -1)
 
-        return h.bfs_path(s, t)
+        return h.bfs_shortest_path(s, t)
 
     while True:
         p = find_augmenting_path()
@@ -139,7 +146,25 @@ def compute_max_flow(capacity, s, t):
                 if v.get_weight(v_next) == 1:
                     δ = min(δ, g.get_weight_from_ids(v_id, v_next_id) -
                             f.get_weight_from_ids(v_id, v_next_id))
-                # TODO continue from here
+                else:
+                    δ = min(δ, f.get_weight_from_ids(v_next_id, v_id))
+            assert δ > 0
+            for v, v_next in zip(p, p[1:]):
+                v_id = v.get_id()
+                v_next_id = v_next.get_id()
+                if v.get_weight(v_next) == 1:
+                    f.add_edge(v_id, v_next_id, f.get_weight_from_ids(
+                        v_id, v_next_id) + δ)
+                else:
+                    f.add_edge(v_next_id, v_id, f.get_weight_from_ids(
+                        v_next_id, v_id) - δ)
+        
+    flow_dict = {}
+    for u in f:
+        for v in u.get_connections():
+            flow_dict[(u.get_id(), v.get_id())] = u.get_weight(v)
+    
+    print(flow_dict)
 
 
 with open('flownetwork_00.csv') as f:
