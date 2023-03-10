@@ -5,8 +5,9 @@ from math import inf
 class Vertex:
     def __init__(self, node):
         self.id = node
-        # key: vertex object
-        # value: path weight
+
+        # key: neighbouring vertex
+        # value: edge weight
         self.adjacent = {}
 
     def __str__(self):
@@ -15,12 +16,14 @@ class Vertex:
     def add_neighbour(self, neighbour, weight=0):
         self.adjacent[neighbour] = weight
 
+    # get all neighbouring vertices
     def get_connections(self):
         return self.adjacent.keys()
 
     def get_id(self):
         return self.id
 
+    # get weight of edge between vertex and a given neighbour
     def get_weight(self, neighbour):
         return self.adjacent[neighbour]
 
@@ -47,52 +50,60 @@ class Graph:
         return self.vert_dict.get(n)
 
     def add_edge(self, frm, to, weight=0):
+        # create vertices if they do not already exist
         if frm not in self.vert_dict:
             self.add_vertex(frm)
         if to not in self.vert_dict:
             self.add_vertex(to)
 
+        # add connection to both vertices with the given weight
         self.vert_dict[frm].add_neighbour(self.vert_dict[to], weight)
         if not self.directed:
             self.vert_dict[to].add_neighbour(self.vert_dict[frm], weight)
 
     def get_vertices(self):
-        # return vertex ids
+        # get a list of all vertex ids in the graph
         return self.vert_dict.keys()
 
     def get_weight_from_ids(self, frm, to):
+        # get the weight of an edge between two vertices
         return self.get_vertex(frm).get_weight(self.get_vertex(to))
 
-    def bfs_shortest_path(self, s, t):
-        s = self.get_vertex(s)
-        t = self.get_vertex(t)
+    def bfs_shortest_path(self, source, target):
+        source = self.get_vertex(source)
+        target = self.get_vertex(target)
+
+        # mark all vertices as unseen and without a come_from vertex
         for v in self:
             v.seen = False
             v.come_from = None
-        s.seen = True
-        toexplore = [s]
 
-        while toexplore:
-            v = toexplore.pop(0)
-            if v == t:
+        # start at the source vertex
+        source.seen = True
+        to_explore = [source]
+
+        while to_explore:
+            v = to_explore.pop(0)
+            if v == target:
                 # found shortest path to t
                 break
 
+            # add unseen neighbours to to_explore
             for w in v.get_connections():
                 if not w.seen:
-                    toexplore.append(w)
+                    to_explore.append(w)
                     w.seen = True
                     w.come_from = v
 
-        if t.come_from is None:
-            # there exists no path from s to t
+        if target.come_from is None:
+            # there exists no path from source to target
             return None
         else:
             # construct path working backwards, from t to s
-            path = [t]
-            while path[0].come_from != s:
+            path = [target]
+            while path[0].come_from != source:
                 path.insert(0, path[0].come_from)
-            path.insert(0, s)
+            path.insert(0, source)
             return path
 
 
@@ -117,6 +128,7 @@ def compute_max_flow(capacity, s, t):
             h.add_vertex(v)
 
         # iterate through each edge u -> v in g
+        # to create h with edge weights 1 or -1, depending on flow
         for u in g:
             for v in u.get_connections():
                 u_id = u.get_id()
@@ -132,13 +144,17 @@ def compute_max_flow(capacity, s, t):
 
         return h, h.bfs_shortest_path(s, t)
 
+    # continuously find augmenting paths until none can be found
     while True:
         # h: residual graph
         # p: shortest path from s to t
         h, p = find_augmenting_path()
+
         if p is None:
+            # no augmenting path can be found
             break
         else:
+            # update the flow along the augmenting path
             δ = inf
 
             for v, v_next in zip(p, p[1:]):
@@ -155,6 +171,7 @@ def compute_max_flow(capacity, s, t):
                     # edge labelled "dec"
                     δ = min(δ, f.get_weight_from_ids(v_next_id, v_id))
 
+            # update flow along the augmenting path
             for v, v_next in zip(p, p[1:]):
                 v_id = v.get_id()
                 v_next_id = v_next.get_id()
