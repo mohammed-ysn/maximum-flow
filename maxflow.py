@@ -69,9 +69,9 @@ class Graph:
         # get the weight of an edge between two vertices
         return self.get_vertex(frm).get_weight(self.get_vertex(to))
 
-    def bfs_shortest_path(self, source, target):
-        source = self.get_vertex(source)
-        target = self.get_vertex(target)
+    def bfs_shortest_path(self, source_id, target_id):
+        source_vertex = self.get_vertex(source_id)
+        target_vertex = self.get_vertex(target_id)
 
         # mark all vertices as unseen and without a come_from vertex
         for v in self:
@@ -79,31 +79,31 @@ class Graph:
             v.come_from = None
 
         # start at the source vertex
-        source.seen = True
-        to_explore = [source]
+        source_vertex.seen = True
+        to_explore = [source_vertex]
 
         while to_explore:
             v = to_explore.pop(0)
-            if v == target:
-                # found shortest path to t
+            if v == target_vertex:
+                # found shortest path to target
                 break
 
             # add unseen neighbours to to_explore
-            for w in v.get_connections():
-                if not w.seen:
-                    to_explore.append(w)
-                    w.seen = True
-                    w.come_from = v
+            for neighbour in v.get_connections():
+                if not neighbour.seen:
+                    to_explore.append(neighbour)
+                    neighbour.seen = True
+                    neighbour.come_from = v
 
-        if target.come_from is None:
+        if target_vertex.come_from is None:
             # there exists no path from source to target
             return None
         else:
-            # construct path working backwards, from t to s
-            path = [target]
-            while path[0].come_from != source:
+            # construct path working backwards, from target to source
+            path = [target_vertex]
+            while path[0].come_from != source_vertex:
                 path.insert(0, path[0].come_from)
-            path.insert(0, source)
+            path.insert(0, source_vertex)
             return path
 
 
@@ -187,12 +187,16 @@ def compute_max_flow(capacity, s, t):
                     )
 
     # compute flow_value
-    s_in_f = f.get_vertex(s)
+    source_in_flow = f.get_vertex(s)
     # sum outgoing edges
-    s_flow_out = sum([s_in_f.get_weight(v) for v in s_in_f.get_connections()])
+    source_flow_out = sum(
+        source_in_flow.get_weight(v) for v in source_in_flow.get_connections()
+    )
     # sum incoming edges
-    s_flow_in = sum([v.get_weight(s_in_f) for v in f if s_in_f in v.get_connections()])
-    flow_value = s_flow_out - s_flow_in
+    source_flow_in = sum(
+        v.get_weight(source_in_flow) for v in f if source_in_flow in v.get_connections()
+    )
+    flow_value = source_flow_out - source_flow_in
 
     # compute cutset by running bfs from s to all nodes
     # after augmenting path not found
