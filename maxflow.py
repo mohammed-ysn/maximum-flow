@@ -10,7 +10,7 @@ class Vertex:
         self.adjacent = {}
 
     def __str__(self):
-        return str(self.id) + ' adjacent: ' + str([x.id for x in self.adjacent])
+        return str(self.id) + " adjacent: " + str([x.id for x in self.adjacent])
 
     def add_neighbour(self, neighbour, weight=0):
         self.adjacent[neighbour] = weight
@@ -142,37 +142,41 @@ def compute_max_flow(capacity, s, t):
             break
         else:
             δ = inf
-            
+
             for v, v_next in zip(p, p[1:]):
                 v_id = v.get_id()
                 v_next_id = v_next.get_id()
                 if v.get_weight(v_next) == 1:
                     # edge labelled "inc"
-                    δ = min(δ, g.get_weight_from_ids(v_id, v_next_id) -
-                            f.get_weight_from_ids(v_id, v_next_id))
+                    δ = min(
+                        δ,
+                        g.get_weight_from_ids(v_id, v_next_id)
+                        - f.get_weight_from_ids(v_id, v_next_id),
+                    )
                 else:
                     # edge labelled "dec"
                     δ = min(δ, f.get_weight_from_ids(v_next_id, v_id))
-            
+
             for v, v_next in zip(p, p[1:]):
                 v_id = v.get_id()
                 v_next_id = v_next.get_id()
                 if v.get_weight(v_next) == 1:
                     # edge labelled "inc"
-                    f.add_edge(v_id, v_next_id, f.get_weight_from_ids(
-                        v_id, v_next_id) + δ)
+                    f.add_edge(
+                        v_id, v_next_id, f.get_weight_from_ids(v_id, v_next_id) + δ
+                    )
                 else:
                     # edge labelled "dec"
-                    f.add_edge(v_next_id, v_id, f.get_weight_from_ids(
-                        v_next_id, v_id) - δ)
+                    f.add_edge(
+                        v_next_id, v_id, f.get_weight_from_ids(v_next_id, v_id) - δ
+                    )
 
     # compute flow_value
     s_in_f = f.get_vertex(s)
     # sum outgoing edges
     s_flow_out = sum([s_in_f.get_weight(v) for v in s_in_f.get_connections()])
     # sum incoming edges
-    s_flow_in = sum([v.get_weight(s_in_f)
-                    for v in f if s_in_f in v.get_connections()])
+    s_flow_in = sum([v.get_weight(s_in_f) for v in f if s_in_f in v.get_connections()])
     flow_value = s_flow_out - s_flow_in
 
     # compute cutset by running bfs from s to all nodes
@@ -191,9 +195,11 @@ def compute_max_flow(capacity, s, t):
     # voila
     return flow_value, flow_dict, cutset
 
-# test graph
-with open('flownetwork_00.csv') as f:
-    rows = [row for row in csv.reader(f)][1:]
-capacity = {(u, v): int(c) for u, v, c in rows}
 
-print(compute_max_flow(capacity, '0', '2'))
+# test graph
+for fname in ["flownetwork_00.csv", "flownetwork_01.csv", "flownetwork_02.csv"]:
+    with open(fname) as f:
+        rows = [row for row in csv.reader(f)][1:]
+    capacity = {(u, v): int(c) for u, v, c in rows}
+
+    print(compute_max_flow(capacity, "0", "2"))
