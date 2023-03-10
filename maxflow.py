@@ -10,7 +10,7 @@ class Vertex:
         self.adjacent = {}
 
     def __str__(self):
-        return str(self.id) + " adjacent: " + str([x.id for x in self.adjacent])
+        return f"{self.id} adjacent: {[x.id for x in self.adjacent]}"
 
     def add_neighbour(self, neighbour, weight=0):
         self.adjacent[neighbour] = weight
@@ -38,16 +38,13 @@ class Graph:
         return iter(self.vert_dict.values())
 
     def add_vertex(self, node):
-        self.num_vertices = self.num_vertices + 1
+        self.num_vertices += 1
         new_vertex = Vertex(node)
         self.vert_dict[node] = new_vertex
         return new_vertex
 
     def get_vertex(self, n):
-        if n in self.vert_dict:
-            return self.vert_dict[n]
-        else:
-            return None
+        return self.vert_dict.get(n)
 
     def add_edge(self, frm, to, weight=0):
         if frm not in self.vert_dict:
@@ -80,12 +77,12 @@ class Graph:
             if v == t:
                 # found shortest path to t
                 break
-            else:
-                for w in v.get_connections():
-                    if not w.seen:
-                        toexplore.append(w)
-                        w.seen = True
-                        w.come_from = v
+
+            for w in v.get_connections():
+                if not w.seen:
+                    toexplore.append(w)
+                    w.seen = True
+                    w.come_from = v
 
         if t.come_from is None:
             # there exists no path from s to t
@@ -125,6 +122,7 @@ def compute_max_flow(capacity, s, t):
                 u_id = u.get_id()
                 v_id = v.get_id()
                 flow = f.get_weight_from_ids(u_id, v_id)
+
                 if flow < u.get_weight(v):
                     # give h an edge u -> v with weight 1 meaning "inc"
                     h.add_edge(u_id, v_id, 1)
@@ -187,19 +185,20 @@ def compute_max_flow(capacity, s, t):
             cutset.add(v)
 
     # convert flow graph to dictionary
-    flow_dict = {}
-    for u in f:
-        for v in u.get_connections():
-            flow_dict[(u.get_id(), v.get_id())] = u.get_weight(v)
+    flow_dict = {
+        (u.get_id(), v.get_id()): u.get_weight(v)
+        for u in f
+        for v in u.get_connections()
+    }
 
     # voila
     return flow_value, flow_dict, cutset
 
 
-# test graph
+# test graphs
 for fname in ["flownetwork_00.csv", "flownetwork_01.csv", "flownetwork_02.csv"]:
     with open(fname) as f:
         rows = [row for row in csv.reader(f)][1:]
     capacity = {(u, v): int(c) for u, v, c in rows}
 
-    print(compute_max_flow(capacity, "0", "2"))
+    print(f'{fname} results: {compute_max_flow(capacity, "0", "2")}')
